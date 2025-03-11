@@ -2,14 +2,14 @@ pipeline {
     agent any
 
     environment {
-        SONARQUBE_URL = 'http://your-sonarqube-server:9000'  // Update with your SonarQube server URL
-        DOCKER_IMAGE = 'sathvik-ai/spring-petclinic'  // Change as needed
+        SONARQUBE_URL = 'http://your-sonarqube-server:9000'
+        DOCKER_IMAGE = 'sathvik-ai/spring-petclinic'
     }
 
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/Sathvik-ai/spring-petclinic.git'
+                git branch: 'main', url: 'https://github.com/Sathvik-ai/spring-petclinic.git'
             }
         }
 
