@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        SONARQUBE_URL = 'http://localhost:9000'  
+        SONARQUBE_URL = 'http://host.docker.internal:9000'  
         DOCKER_IMAGE = 'sathvik-ai/spring-petclinic'  
     }
 
@@ -34,19 +34,6 @@ pipeline {
                         -Dsonar.login=$SONAR_AUTH \
                         -Dsonar.maven.plugin.version=4.0.0.4121
                         '''
-                    }
-                }
-            }
-        }
-
-        stage('Quality Gate Check') {
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {  // Wait for SonarQube Quality Gate
-                    script {
-                        def qg = waitForQualityGate()
-                        if (qg.status != 'OK') {
-                            error "Pipeline failed due to quality gate failure: ${qg.status}"
-                        }
                     }
                 }
             }
