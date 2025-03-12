@@ -2,11 +2,13 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven 3'
+        maven 'Maven 3'  // Ensure this matches the name in Jenkins tool configuration
     }
 
     environment {
-        SONARQUBE_URL = 'http://172.17.0.3:9000'  // Update with the container IP
+        SONARQUBE_URL = 'http://localhost:9000'  // Updated to use localhost
+        DOCKER_IMAGE = 'sathvik-ai/spring-petclinic'  // Change as needed
+        SONAR_TOKEN = 'sqa_56c8f0c251d565a7c426623ff2c75f4c3eb15c60'  // Your SonarQube token
     }
 
     stages {
@@ -25,9 +27,13 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') { 
-                    withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONARQUBE_TOKEN')]) {
-                        sh 'mvn sonar:sonar -Dsonar.projectKey=spring-petclinic -Dsonar.host.url=$SONARQUBE_URL -Dsonar.login=$SONARQUBE_TOKEN'
-                    }
+                    sh '''
+                    mvn sonar:sonar \
+                    -Dsonar.projectKey=spring-petclinic \
+                    -Dsonar.host.url=$SONARQUBE_URL \
+                    -Dsonar.login=$SONAR_TOKEN \
+                    -Dsonar.maven.plugin.version=4.0.0.4121
+                    '''
                 }
             }
         }
@@ -35,16 +41,16 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 sh '''
-                docker build -t sathvik-ai/spring-petclinic .
-                docker tag sathvik-ai/spring-petclinic:latest sathvik-ai/spring-petclinic:v1
-                docker push sathvik-ai/spring-petclinic:v1
+                docker build -t $DOCKER_IMAGE .
+                docker tag $DOCKER_IMAGE:latest $DOCKER_IMAGE:v1
+                docker push $DOCKER_IMAGE:v1
                 '''
             }
         }
 
         stage('Deploy Container') {
             steps {
-                sh 'docker run -d -p 8080:8080 --name petclinic sathvik-ai/spring-petclinic:v1'
+                sh 'docker run -d -p 8080:8080 --name petclinic $DOCKER_IMAGE:v1'
             }
         }
     }
