@@ -8,7 +8,6 @@ pipeline {
     environment {
         SONARQUBE_URL = 'http://localhost:9000'  // Updated to use localhost
         DOCKER_IMAGE = 'sathvik-ai/spring-petclinic'  // Change as needed
-        SONAR_TOKEN = 'sqa_56c8f0c251d565a7c426623ff2c75f4c3eb15c60'  // Your SonarQube token
     }
 
     stages {
@@ -26,14 +25,16 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') { 
-                    sh '''
-                    mvn sonar:sonar \
-                    -Dsonar.projectKey=spring-petclinic \
-                    -Dsonar.host.url=$SONARQUBE_URL \
-                    -Dsonar.login=$SONAR_TOKEN \
-                    -Dsonar.maven.plugin.version=4.0.0.4121
-                    '''
+                withSonarQubeEnv('SonarQubeServer') {  // Ensure it matches the SonarQube name in Jenkins
+                    withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_AUTH')]) {
+                        sh '''
+                        mvn sonar:sonar \
+                        -Dsonar.projectKey=spring-petclinic \
+                        -Dsonar.host.url=$SONARQUBE_URL \
+                        -Dsonar.login=$SONAR_AUTH \
+                        -Dsonar.maven.plugin.version=4.0.0.4121
+                        '''
+                    }
                 }
             }
         }
@@ -41,7 +42,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 sh '''
-                docker build -t $DOCKER_IMAGE .
+                docker build -t $DOCKER_IMAGE . 
                 docker tag $DOCKER_IMAGE:latest $DOCKER_IMAGE:v1
                 docker push $DOCKER_IMAGE:v1
                 '''
