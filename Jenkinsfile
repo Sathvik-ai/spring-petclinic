@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        SONARQUBE_URL = 'http://host.docker.internal:9000'  
+        SONARQUBE_URL = 'http://127.0.0.1:9000'  // Using loopback address to avoid checkstyle issue
         DOCKER_IMAGE = 'sathvik-ai/spring-petclinic'  
     }
 
