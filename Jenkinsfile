@@ -6,8 +6,9 @@ pipeline {
     }
 
     environment {
-        SONARQUBE_URL = 'http://your-sonarqube-server:9000'  // Update with your SonarQube server URL
-        DOCKER_IMAGE = 'sathvik-ai/spring-petclinic'  // Change as needed
+        SONARQUBE_URL = 'http://localhost:9000'  // Update as per your SonarQube instance
+        SONAR_PROJECT_KEY = 'spring-petclinic'   // Unique SonarQube project key
+        DOCKER_IMAGE = 'sathvik-ai/spring-petclinic'  // Your Docker image name
     }
 
     stages {
@@ -25,8 +26,13 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') { 
-                    sh 'mvn sonar:sonar'
+                withSonarQubeEnv('SonarQubeServer') {  // Matches your SonarQube server config
+                    sh '''
+                    mvn sonar:sonar \
+                        -Dsonar.projectKey=$SONAR_PROJECT_KEY \
+                        -Dsonar.host.url=$SONARQUBE_URL \
+                        -Dsonar.login=$SONAR_TOKEN  # Ensure SONAR_TOKEN is configured in Jenkins credentials
+                    '''
                 }
             }
         }
@@ -34,7 +40,7 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 sh '''
-                docker build -t $DOCKER_IMAGE .
+                docker build -t $DOCKER_IMAGE:latest .
                 docker tag $DOCKER_IMAGE:latest $DOCKER_IMAGE:v1
                 docker push $DOCKER_IMAGE:v1
                 '''
@@ -43,7 +49,11 @@ pipeline {
 
         stage('Deploy Container') {
             steps {
-                sh 'docker run -d -p 8080:8080 --name petclinic $DOCKER_IMAGE:v1'
+                sh '''
+                docker stop petclinic || true
+                docker rm petclinic || true
+                docker run -d -p 8080:8080 --name petclinic $DOCKER_IMAGE:v1
+                '''
             }
         }
     }
