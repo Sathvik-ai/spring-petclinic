@@ -2,13 +2,11 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven 3'  // Ensure this matches the name in Jenkins tool configuration
+        maven 'Maven 3'
     }
 
     environment {
-        SONARQUBE_URL = 'http://localhost:9000'  // Update as per your SonarQube instance
-        SONAR_PROJECT_KEY = 'spring-petclinic'   // Unique SonarQube project key
-        DOCKER_IMAGE = 'sathvik-ai/spring-petclinic'  // Your Docker image name
+        SONARQUBE_URL = 'http://172.17.0.3:9000'  // Update with the container IP
     }
 
     stages {
@@ -26,13 +24,10 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQubeServer') {  // Matches your SonarQube server config
-                    sh '''
-                    mvn sonar:sonar \
-                        -Dsonar.projectKey=$SONAR_PROJECT_KEY \
-                        -Dsonar.host.url=$SONARQUBE_URL \
-                        -Dsonar.login=$SONAR_TOKEN  # Ensure SONAR_TOKEN is configured in Jenkins credentials
-                    '''
+                withSonarQubeEnv('SonarQube') { 
+                    withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONARQUBE_TOKEN')]) {
+                        sh 'mvn sonar:sonar -Dsonar.projectKey=spring-petclinic -Dsonar.host.url=$SONARQUBE_URL -Dsonar.login=$SONARQUBE_TOKEN'
+                    }
                 }
             }
         }
@@ -40,20 +35,16 @@ pipeline {
         stage('Docker Build & Push') {
             steps {
                 sh '''
-                docker build -t $DOCKER_IMAGE:latest .
-                docker tag $DOCKER_IMAGE:latest $DOCKER_IMAGE:v1
-                docker push $DOCKER_IMAGE:v1
+                docker build -t sathvik-ai/spring-petclinic .
+                docker tag sathvik-ai/spring-petclinic:latest sathvik-ai/spring-petclinic:v1
+                docker push sathvik-ai/spring-petclinic:v1
                 '''
             }
         }
 
         stage('Deploy Container') {
             steps {
-                sh '''
-                docker stop petclinic || true
-                docker rm petclinic || true
-                docker run -d -p 8080:8080 --name petclinic $DOCKER_IMAGE:v1
-                '''
+                sh 'docker run -d -p 8080:8080 --name petclinic sathvik-ai/spring-petclinic:v1'
             }
         }
     }
