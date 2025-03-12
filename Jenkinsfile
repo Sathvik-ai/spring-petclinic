@@ -6,8 +6,8 @@ pipeline {
     }
 
     environment {
-        SONARQUBE_URL = 'http://localhost:9000'  // Updated to use localhost
-        DOCKER_IMAGE = 'sathvik-ai/spring-petclinic'  // Change as needed
+        SONARQUBE_URL = 'http://localhost:9000'  
+        DOCKER_IMAGE = 'sathvik-ai/spring-petclinic'  
     }
 
     stages {
@@ -25,7 +25,7 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQubeServer') {  // Ensure it matches the SonarQube name in Jenkins
+                withSonarQubeEnv('SonarQubeServer') {  
                     withCredentials([string(credentialsId: 'SONAR_TOKEN', variable: 'SONAR_AUTH')]) {
                         sh '''
                         mvn sonar:sonar \
@@ -34,6 +34,17 @@ pipeline {
                         -Dsonar.login=$SONAR_AUTH \
                         -Dsonar.maven.plugin.version=4.0.0.4121
                         '''
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate Check') {
+            steps {
+                script {
+                    def qg = waitForQualityGate()
+                    if (qg.status != 'OK') {
+                        error "Pipeline failed due to quality gate failure: ${qg.status}"
                     }
                 }
             }
